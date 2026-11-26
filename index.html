@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+    <title>Flow Captions</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Flow Captions</h1>
+        <span id="badge" class="badge">Idle</span>
+      </header>
+
+      <button id="toggle" class="primary" type="button">Start captions</button>
+      <p id="error" class="error" hidden></p>
+
+      <section class="card">
+        <div class="row">
+          <h2>Live</h2>
+          <div class="actions">
+            <button id="pause" type="button" disabled>Pause</button>
+            <button id="clear" type="button">Clear</button>
+            <button id="copy" type="button">Copy</button>
+          </div>
+        </div>
+        <div id="live" class="live" dir="auto"><span class="muted">Captions show up here and on your glasses.</span></div>
+        <div class="meter"><div id="level"></div></div>
+      </section>
+
+      <details class="card" id="settings-card">
+        <summary><h2>Settings</h2></summary>
+        <form id="settings" autocomplete="off">
+          <label>Wispr Flow API key
+            <input name="apiKey" type="password" placeholder="fl-..." spellcheck="false" />
+            <small>Stored on this phone only. It is not part of the app package or the repo.</small>
+          </label>
+          <label class="check"><input name="isClientToken" type="checkbox" /> This is a short-lived client token, not the org key</label>
+
+          <label>Languages
+            <input name="languages" placeholder="en, ar, fr" spellcheck="false" />
+            <small>ISO codes. One code forces that language. Several = the languages you switch between. Empty = auto-detect.</small>
+          </label>
+
+          <label>Names and words to spell right
+            <textarea name="dictionary" rows="2" placeholder="Zein, Even Realities, DaVinci Resolve"></textarea>
+          </label>
+
+          <div class="grid">
+            <label>Microphone
+              <select name="mic">
+                <option value="glasses">Glasses</option>
+                <option value="phone">Phone</option>
+              </select>
+            </label>
+            <label>Whose speech
+              <select name="speakers">
+                <option value="everyone">Everyone</option>
+                <option value="others">Other people only</option>
+                <option value="me">Only me</option>
+              </select>
+            </label>
+            <label>Glasses rendering
+              <select name="render">
+                <option value="auto">Auto</option>
+                <option value="text">Native text (fastest)</option>
+                <option value="image">Image (any script)</option>
+              </select>
+            </label>
+            <label>Sensitivity
+              <select name="sensitivity">
+                <option value="0.006">High (quiet rooms)</option>
+                <option value="0.012">Normal</option>
+                <option value="0.025">Low (noisy places)</option>
+              </select>
+            </label>
+          </div>
+          <button class="primary" type="submit">Save</button>
+          <small id="saved" class="muted" hidden>Saved.</small>
+        </form>
+      </details>
+
+      <footer class="muted">
+        Glasses: tap to pause or resume, long-press to clear, double-tap to exit.
+      </footer>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

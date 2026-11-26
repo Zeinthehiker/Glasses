@@ -1,0 +1,31 @@
+{
+  "name": "g2-flow-captions",
+  "version": "0.1.0",
+  "description": "Live captions on Even Realities G2 glasses, powered by Wispr Flow speech-to-text.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "pack": "npm run build && evenhub pack app.json dist -o flow-captions.ehpk",
+    "qr": "evenhub qr --port 5173",
+    "simulate": "evenhub-simulator http://localhost:5173"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@evenrealities/even_hub_sdk": "^0.0.16",
+    "@evenrealities/pretext": "^0.1.4"
+  },
+  "devDependencies": {
+    "@evenrealities/evenhub-cli": "^0.2.0",
+    "@evenrealities/evenhub-simulator": "^0.9.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.2"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^20.17.0 || >=22.13.0"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "package_id": "com.zeinkhalifa.flowcaptions",
+  "edition": "202601",
+  "name": "Flow Captions",
+  "version": "0.1.0",
+  "min_app_version": "2.2.10",
+  "min_sdk_version": "0.0.16",
+  "entrypoint": "index.html",
+  "permissions": [
+    {
+      "name": "g2-microphone",
+      "desc": "Streams what the glasses microphone hears to Wispr Flow so it can be shown as live captions."
+    },
+    {
+      "name": "phone-microphone",
+      "desc": "Optional: use the phone microphone instead of the glasses microphone for captions."
+    },
+    {
+      "name": "network",
+      "desc": "Sends microphone audio to the Wispr Flow speech-to-text API and receives the transcript.",
+      "whitelist": [
+        "https://platform-api.wisprflow.ai",
+        "wss://platform-api.wisprflow.ai"
+      ]
+    }
+  ],
+  "supported_languages": ["en"]
+}
