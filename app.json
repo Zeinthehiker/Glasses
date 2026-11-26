@@ -9,7 +9,7 @@
   "permissions": [
     {
       "name": "g2-microphone",
-      "desc": "Streams what the glasses microphone hears to Wispr Flow so it can be shown as live captions."
+      "desc": "Streams what the glasses microphone hears to your speech-to-text service so it can be shown as live captions."
     },
     {
       "name": "phone-microphone",
@@ -17,12 +17,16 @@
     },
     {
       "name": "network",
-      "desc": "Sends microphone audio to the Wispr Flow speech-to-text API and receives the transcript.",
+      "desc": "Sends microphone audio to the speech-to-text service you pick (ElevenLabs or Wispr Flow) and receives the transcript.",
       "whitelist": [
+        "https://api.elevenlabs.io",
+        "wss://api.elevenlabs.io",
         "https://platform-api.wisprflow.ai",
         "wss://platform-api.wisprflow.ai"
       ]
     }
   ],
-  "supported_languages": ["en"]
+  "supported_languages": [
+    "en"
+  ]
 }

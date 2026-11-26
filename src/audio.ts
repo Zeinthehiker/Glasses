@@ -78,3 +78,7 @@ export class PacketChunker {
     this.fill = 0
   }
 }
+
+export function samplesForMs(ms: number): number {
+  return Math.round((SAMPLE_RATE * ms) / 1000)
+}

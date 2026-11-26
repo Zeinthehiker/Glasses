@@ -1,22 +1,15 @@
 import { PacketChunker, bytesToInt16 } from './audio'
 import { Segmenter, type SegmenterOptions } from './segmenter'
+import type { CaptionEngine, EngineEvents } from './engine'
 import { Transcript } from './transcript'
 import { WisprSession, samplesPerPacket, type WisprConfig } from './wispr'
 
-export interface CaptionerEvents {
-  onCaption(text: string): void
-  onStatus(status: CaptionerStatus): void
-  onError(message: string): void
-  onLanguage?(code: string): void
-}
-
-export type CaptionerStatus = 'idle' | 'listening' | 'hearing' | 'paused'
 
 /**
- * Glue between the microphone, the utterance segmenter and Wispr sessions.
+ * Wispr Flow engine. Glue between the microphone, the utterance segmenter and Wispr sessions.
  * Feed it raw PCM with `pushBytes`/`pushSamples`; it emits caption text.
  */
-export class Captioner {
+export class WisprCaptioner implements CaptionEngine {
   readonly transcript = new Transcript()
   private readonly chunker: PacketChunker
   private readonly segmenter: Segmenter
@@ -29,7 +22,7 @@ export class Captioner {
 
   constructor(
     private readonly cfg: WisprConfig,
-    private readonly events: CaptionerEvents,
+    private readonly events: EngineEvents,
     segmenterOpts: Partial<SegmenterOptions> = {},
   ) {
     this.chunker = new PacketChunker(samplesPerPacket(cfg.packetMs), (p) => this.segmenter.push(p))

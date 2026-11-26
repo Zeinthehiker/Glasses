@@ -4,22 +4,32 @@ import type { RenderMode } from './glasses/display'
 export type MicSource = 'glasses' | 'phone'
 export type SpeakerFilter = 'everyone' | 'others' | 'me'
 
+export type EngineName = 'elevenlabs' | 'wispr'
+
 export interface Settings {
+  engine: EngineName
+  elevenlabsKey: string
+  /** Wispr Flow key (API access is invite-only). */
   apiKey: string
   isClientToken: boolean
+  /** ElevenLabs: ignore background conversations and TV. */
+  filterBackground: boolean
   /** ISO 639-1 codes, e.g. ["en", "ar", "fr"]. Empty = auto-detect. */
   languages: string[]
   dictionary: string[]
   mic: MicSource
   render: RenderMode
   speakers: SpeakerFilter
-  /** Lower = picks up quieter speech (and more background noise). */
+  /** Wispr only. Lower = picks up quieter speech (and more background noise). */
   sensitivity: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  engine: 'elevenlabs',
+  elevenlabsKey: '',
   apiKey: '',
   isClientToken: false,
+  filterBackground: false,
   languages: ['en'],
   dictionary: [],
   mic: 'glasses',
@@ -50,9 +60,16 @@ export async function loadSettings(bridge: EvenAppBridge | null): Promise<Settin
   }
   const settings = { ...DEFAULT_SETTINGS, ...parsed }
   // Desktop development convenience only, see .env.example.
-  const devKey = import.meta.env.DEV ? (import.meta.env.VITE_WISPR_API_KEY as string | undefined) : undefined
-  if (!settings.apiKey && devKey) settings.apiKey = devKey
+  if (import.meta.env.DEV) {
+    const env = import.meta.env as Record<string, string | undefined>
+    if (!settings.elevenlabsKey && env.VITE_ELEVENLABS_API_KEY) settings.elevenlabsKey = env.VITE_ELEVENLABS_API_KEY
+    if (!settings.apiKey && env.VITE_WISPR_API_KEY) settings.apiKey = env.VITE_WISPR_API_KEY
+  }
   return settings
+}
+
+export function activeKey(s: Settings): string {
+  return s.engine === 'elevenlabs' ? s.elevenlabsKey : s.apiKey
 }
 
 export async function saveSettings(bridge: EvenAppBridge | null, settings: Settings): Promise<void> {

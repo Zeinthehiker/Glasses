@@ -51,3 +51,5 @@ input:not([type=checkbox]), select, textarea {
 small { font-size: 12px; color: var(--muted); }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 footer { font-size: 12px; text-align: center; }
+[data-engine] { display: grid; gap: 12px; }
+[data-engine][hidden] { display: none; }

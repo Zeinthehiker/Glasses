@@ -7,10 +7,12 @@ import {
   type EvenHubEvent,
 } from '@evenrealities/even_hub_sdk'
 import { bytesToInt16, rms } from './audio'
-import { Captioner, type CaptionerStatus } from './captioner'
+import { WisprCaptioner } from './captioner'
+import { ElevenLabsCaptioner } from './elevenlabs'
+import type { CaptionEngine, EngineEvents, EngineStatus } from './engine'
 import { GlassesDisplay, MENU } from './glasses/display'
 import { startBrowserMic } from './mic-browser'
-import { loadSettings, parseLanguages, parseList, saveSettings, type Settings } from './settings'
+import { activeKey, loadSettings, parseLanguages, parseList, saveSettings, type Settings } from './settings'
 
 const PACKET_MS = 100
 
@@ -32,11 +34,11 @@ const ui = {
 let bridge: EvenAppBridge | null = null
 let glasses: GlassesDisplay | null = null
 let settings: Settings
-let captioner: Captioner | null = null
+let captioner: CaptionEngine | null = null
 let stopMic: (() => void) | null = null
 let tickTimer: ReturnType<typeof setInterval> | null = null
-let lastStatus: CaptionerStatus = 'idle'
-let lastRun: Captioner | null = null
+let lastStatus: EngineStatus = 'idle'
+let lastRun: CaptionEngine | null = null
 
 /**
  * The Even app injects `window.flutter_inappwebview` into its WebView. In a
@@ -57,10 +59,10 @@ function langLabel(): string {
 }
 
 function glassesStatus(): string {
-  if (!settings.apiKey) return '! Add your Wispr key in the phone app'
+  if (!activeKey(settings)) return '! Add your API key in the phone app'
   switch (lastStatus) {
     case 'idle':
-      return '○ Ready · tap to start'
+      return ui.error.hidden ? '○ Ready · tap to start' : `! ${ui.error.textContent}`.slice(0, 80)
     case 'paused':
       return '■ Paused · tap to resume'
     case 'hearing':
@@ -70,9 +72,9 @@ function glassesStatus(): string {
   }
 }
 
-function setStatus(status: CaptionerStatus): void {
+function setStatus(status: EngineStatus): void {
   lastStatus = status
-  const labels: Record<CaptionerStatus, string> = {
+  const labels: Record<EngineStatus, string> = {
     idle: 'Idle',
     listening: 'Listening',
     hearing: 'Hearing speech',
@@ -136,34 +138,53 @@ function meter(samples: Int16Array): void {
   ui.level.style.width = `${Math.min(100, Math.round(rms(samples) * 600))}%`
 }
 
+function createEngine(events: EngineEvents): CaptionEngine {
+  if (settings.engine === 'wispr') {
+    return new WisprCaptioner(
+      {
+        apiKey: settings.apiKey,
+        isClientToken: settings.isClientToken,
+        languages: settings.languages,
+        dictionary: settings.dictionary,
+        packetMs: PACKET_MS,
+      },
+      events,
+      { minLevel: settings.sensitivity },
+    )
+  }
+  return new ElevenLabsCaptioner(
+    {
+      apiKey: settings.elevenlabsKey,
+      languages: settings.languages,
+      keyterms: settings.dictionary,
+      filterBackground: settings.filterBackground,
+    },
+    events,
+  )
+}
+
 async function start(): Promise<void> {
   if (captioner) return
   showError(null)
-  if (!settings.apiKey) {
-    showError('Add your Wispr Flow API key in Settings first.')
+  if (!activeKey(settings)) {
+    showError(`Add your ${settings.engine === 'elevenlabs' ? 'ElevenLabs' : 'Wispr Flow'} API key in Settings first.`)
     ui.settingsCard.open = true
     glasses?.setStatus(glassesStatus())
     return
   }
 
-  captioner = new Captioner(
-    {
-      apiKey: settings.apiKey,
-      isClientToken: settings.isClientToken,
-      languages: settings.languages,
-      dictionary: settings.dictionary,
-      packetMs: PACKET_MS,
+  captioner = createEngine({
+    onCaption: (text) => {
+      glasses?.setCaption(text)
+      renderLive()
     },
-    {
-      onCaption: (text) => {
-        glasses?.setCaption(text)
-        renderLive()
-      },
-      onStatus: setStatus,
-      onError: showError,
+    onStatus: (status) => {
+      setStatus(status)
+      // The engine stopped itself (e.g. the API key was rejected): release the mic too.
+      if (status === 'idle' && captioner && !stopping) stop()
     },
-    { minLevel: settings.sensitivity },
-  )
+    onError: showError,
+  })
   captioner.start()
   tickTimer = setInterval(() => captioner?.tick(), 5000)
 
@@ -185,7 +206,10 @@ async function start(): Promise<void> {
   }
 }
 
+let stopping = false
 function stop(): void {
+  if (stopping) return
+  stopping = true
   stopMic?.()
   stopMic = null
   if (tickTimer) clearInterval(tickTimer)
@@ -198,6 +222,7 @@ function stop(): void {
   }
   ui.level.style.width = '0'
   setStatus('idle')
+  stopping = false
 }
 
 function togglePause(): void {
@@ -246,6 +271,9 @@ function onGlassesEvent(event: EvenHubEvent): void {
 
 function fillForm(s: Settings): void {
   const f = ui.form.elements as any
+  f.engine.value = s.engine
+  f.elevenlabsKey.value = s.elevenlabsKey
+  f.filterBackground.checked = s.filterBackground
   f.apiKey.value = s.apiKey
   f.isClientToken.checked = s.isClientToken
   f.languages.value = s.languages.join(', ')
@@ -254,11 +282,21 @@ function fillForm(s: Settings): void {
   f.speakers.value = s.speakers
   f.render.value = s.render
   f.sensitivity.value = String(s.sensitivity)
+  showEngineFields(s.engine)
+}
+
+function showEngineFields(engine: string): void {
+  ui.form.querySelectorAll<HTMLElement>('[data-engine]').forEach((el) => {
+    el.hidden = el.dataset.engine !== engine
+  })
 }
 
 function readForm(): Settings {
   const f = ui.form.elements as any
   return {
+    engine: f.engine.value,
+    elevenlabsKey: f.elevenlabsKey.value.trim(),
+    filterBackground: f.filterBackground.checked,
     apiKey: f.apiKey.value.trim(),
     isClientToken: f.isClientToken.checked,
     languages: parseLanguages(f.languages.value),
@@ -274,7 +312,7 @@ async function main(): Promise<void> {
   bridge = await detectBridge()
   settings = await loadSettings(bridge)
   fillForm(settings)
-  if (!settings.apiKey) ui.settingsCard.open = true
+  if (!activeKey(settings)) ui.settingsCard.open = true
 
   if (bridge) {
     glasses = new GlassesDisplay(bridge, settings.render)
@@ -282,7 +320,7 @@ async function main(): Promise<void> {
     bridge.onEvenHubEvent(onGlassesEvent)
     // Opened from the glasses menu: start right away, no phone needed.
     bridge.onLaunchSource((source) => {
-      if (source === 'glassesMenu' && settings.apiKey) void start()
+      if (source === 'glassesMenu' && activeKey(settings)) void start()
     })
   } else {
     // Desktop browser: the "Microphone" setting is ignored, the computer mic is used.
@@ -291,6 +329,9 @@ async function main(): Promise<void> {
     opt?.parentElement?.append(Object.assign(document.createElement('small'), { textContent: 'Browser mode: uses this computer\'s mic.' }))
   }
 
+  ui.form.querySelector('select[name=engine]')?.addEventListener('change', (e) => {
+    showEngineFields((e.target as HTMLSelectElement).value)
+  })
   ui.toggle.onclick = () => (captioner ? stop() : void start())
   ui.pause.onclick = togglePause
   ui.clear.onclick = clearCaptions

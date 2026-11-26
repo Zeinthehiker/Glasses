@@ -32,15 +32,32 @@
       <details class="card" id="settings-card">
         <summary><h2>Settings</h2></summary>
         <form id="settings" autocomplete="off">
-          <label>Wispr Flow API key
-            <input name="apiKey" type="password" placeholder="fl-..." spellcheck="false" />
-            <small>Stored on this phone only. It is not part of the app package or the repo.</small>
+          <label>Speech engine
+            <select name="engine">
+              <option value="elevenlabs">ElevenLabs Scribe</option>
+              <option value="wispr">Wispr Flow (needs approved API access)</option>
+            </select>
           </label>
-          <label class="check"><input name="isClientToken" type="checkbox" /> This is a short-lived client token, not the org key</label>
+
+          <div data-engine="elevenlabs">
+            <label>ElevenLabs API key
+              <input name="elevenlabsKey" type="password" placeholder="sk_..." spellcheck="false" />
+              <small>Stored on this phone only. It is not part of the app package or the repo.</small>
+            </label>
+            <label class="check"><input name="filterBackground" type="checkbox" /> Ignore background voices (TV, other tables)</label>
+          </div>
+
+          <div data-engine="wispr">
+            <label>Wispr Flow API key
+              <input name="apiKey" type="password" placeholder="fl-..." spellcheck="false" />
+              <small>Stored on this phone only. It is not part of the app package or the repo.</small>
+            </label>
+            <label class="check"><input name="isClientToken" type="checkbox" /> This is a short-lived client token, not the org key</label>
+          </div>
 
           <label>Languages
             <input name="languages" placeholder="en, ar, fr" spellcheck="false" />
-            <small>ISO codes. One code forces that language. Several = the languages you switch between. Empty = auto-detect.</small>
+            <small>ISO codes, main language first. Several = the languages you switch between, even mid-sentence. Empty = auto-detect.</small>
           </label>
 
           <label>Names and words to spell right
@@ -68,7 +85,7 @@
                 <option value="image">Image (any script)</option>
               </select>
             </label>
-            <label>Sensitivity
+            <label data-engine="wispr">Sensitivity
               <select name="sensitivity">
                 <option value="0.006">High (quiet rooms)</option>
                 <option value="0.012">Normal</option>
